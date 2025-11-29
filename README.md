@@ -24,7 +24,7 @@ The Velvet iOS SDK is a Swift Package that makes it easy to add waitlist functio
 2. Go to **File → Add Package Dependencies...**
 3. Enter your package repository URL:
    ```
-   https://github.com/yourusername/velvet-waitlist
+   https://github.com/riceboxdev/Velvet
    ```
    Or if using a local path during development:
    ```
@@ -503,8 +503,8 @@ struct ContentView: View {
 ## Support
 
 For issues, questions, or feature requests, please:
-- Open an issue in the repository
-- Check the main project README for backend setup instructions
+- Open an issue in the [repository](https://github.com/riceboxdev/Velvet)
+- Check the [web dashboard repository](https://github.com/riceboxdev/velvet-dashboard) for backend setup instructions
 - Review the API documentation in the dashboard
 
 ## License
