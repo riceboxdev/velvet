@@ -34,4 +34,4 @@ const db = admin.firestore();
 // Ensure settings exist
 db.settings({ ignoreUndefinedProperties: true });
 
-module.exports = db;
+module.exports = { db, auth: admin.auth() };
