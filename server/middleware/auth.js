@@ -1,14 +1,11 @@
-const jwt = require('jsonwebtoken');
+const admin = require('firebase-admin');
 const User = require('../models/User');
-const Waitlist = require('../models/Waitlist');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 /**
- * Authenticate JWT token
+ * Authenticate Firebase ID token
  * Adds req.user with the authenticated user
  */
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,17 +18,19 @@ function authenticateToken(req, res, next) {
     const token = authHeader.substring(7);
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        const user = User.findById(decoded.id);
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const user = await User.findById(decodedToken.uid);
 
         if (!user) {
+            // Optional: Auto-create user if they exist in Auth but not Firestore
+            // For now, return 401
             return res.status(401).json({
                 error: 'User not found',
-                message: 'The user associated with this token no longer exists'
+                message: 'The user associated with this token does not exist in the database'
             });
         }
 
-        if (!user.is_active) {
+        if (user.is_active === false) { // Check explicit false, in case undefined
             return res.status(401).json({
                 error: 'Account disabled',
                 message: 'This account has been disabled'
@@ -39,9 +38,12 @@ function authenticateToken(req, res, next) {
         }
 
         req.user = user;
+        req.auth = decodedToken; // Store raw firebase auth data
         next();
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
+        console.error('[Auth] Token verification failed:', error);
+
+        if (error.code === 'auth/id-token-expired') {
             return res.status(401).json({
                 error: 'Token expired',
                 message: 'Your session has expired, please log in again'
@@ -85,17 +87,19 @@ function authenticateApiKey(req, res, next) {
 /**
  * Optional authentication - attaches user if token present, but doesn't require it
  */
-function optionalAuth(req, res, next) {
+async function optionalAuth(req, res, next) {
     const authHeader = req.headers.authorization;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
 
         try {
-            const decoded = jwt.verify(token, JWT_SECRET);
-            const user = User.findById(decoded.id);
-            if (user && user.is_active) {
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            const user = await User.findById(decodedToken.uid);
+
+            if (user && user.is_active !== false) {
                 req.user = user;
+                req.auth = decodedToken;
             }
         } catch (error) {
             // Token invalid, but that's okay for optional auth
