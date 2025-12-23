@@ -11,7 +11,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     // Check if the current route is public
     const isPublicRoute = publicRoutes.some(route =>
-        to.path === route || to.path.startsWith('/auth/')
+        to.path === route ||
+        to.path.startsWith('/auth/') ||
+        to.path.startsWith('/join/')
     )
 
     // If user is not authenticated and tries to access a protected route
