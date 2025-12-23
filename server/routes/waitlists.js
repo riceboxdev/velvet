@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/auth');
+const { authenticateToken: verifyToken } = require('../middleware/auth');
 const Waitlist = require('../models/Waitlist');
 
 // All routes require authentication
