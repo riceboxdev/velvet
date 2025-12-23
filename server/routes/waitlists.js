@@ -12,7 +12,7 @@ router.use(verifyToken);
  */
 router.get('/', async (req, res) => {
     try {
-        const waitlists = await Waitlist.findByUserId(req.user.uid);
+        const waitlists = await Waitlist.findByUserId(req.auth.uid);
 
         // Get stats for each waitlist
         const waitlistsWithStats = await Promise.all(
@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
         const waitlist = await Waitlist.create({
             name,
             description: description || '',
-            userId: req.user.uid
+            userId: req.auth.uid
         });
 
         const stats = await Waitlist.getStats(waitlist.id);
@@ -78,7 +78,7 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Waitlist not found' });
         }
 
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -106,7 +106,7 @@ router.put('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Waitlist not found' });
         }
 
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -136,7 +136,7 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Waitlist not found' });
         }
 
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -164,7 +164,7 @@ router.post('/:id/regenerate-key', async (req, res) => {
             return res.status(404).json({ error: 'Waitlist not found' });
         }
 
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
