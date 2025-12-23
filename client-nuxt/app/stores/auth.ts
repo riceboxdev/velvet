@@ -232,6 +232,7 @@ export const useAuthStore = defineStore('auth', () => {
         fetchCurrentUser,
         updateProfile,
         getIdToken,
-        getAuthHeader
+        getAuthHeader,
+        initAuth
     }
 })
