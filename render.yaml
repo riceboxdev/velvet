@@ -15,14 +15,13 @@ services:
       - key: CORS_ORIGIN
         value: "*" # Allow all for simplicity, or restrict to frontend URL later
 
+staticSites:
   # Frontend Service (Nuxt SPA)
-  - type: web
-    name: velvet-frontend
-    env: static
+  - name: velvet-frontend
     plan: free
     rootDir: client-nuxt
     buildCommand: npm install && npx nuxt generate
-    staticPublishPath: .output/public
+    publishPath: .output/public
     envVars:
       - key: NUXT_PUBLIC_API_HOST
         fromService:
