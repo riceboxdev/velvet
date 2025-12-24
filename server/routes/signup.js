@@ -145,7 +145,7 @@ router.get('/:waitlistId', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'Waitlist not found' });
         }
 
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -188,7 +188,7 @@ router.put('/:id/verify', verifyToken, async (req, res) => {
         }
 
         const waitlist = await Waitlist.findById(signup.waitlist_id);
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -216,7 +216,7 @@ router.put('/:id/offboard', verifyToken, async (req, res) => {
         }
 
         const waitlist = await Waitlist.findById(signup.waitlist_id);
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -244,7 +244,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
         }
 
         const waitlist = await Waitlist.findById(signup.waitlist_id);
-        if (waitlist.user_id !== req.user.uid) {
+        if (waitlist.user_id !== req.auth.uid) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
