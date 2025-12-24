@@ -6,12 +6,17 @@ import {
     onAuthStateChanged,
     type User as FirebaseUser
 } from 'firebase/auth'
-import { useFirebaseAuth } from '~/plugins/firebase.client'
+import { useFirebaseAuth, useFirebaseStorage } from '~/plugins/firebase.client'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 interface User {
     id: string
     email: string
     name?: string
+    photo_url?: string
+    bio?: string
+    website?: string
+    company?: string
     is_admin?: boolean
 }
 
@@ -185,7 +190,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     // Update profile
-    async function updateProfile(updates: { name?: string; email?: string }) {
+    async function updateProfile(updates: { name?: string; email?: string; bio?: string; website?: string; company?: string; photo_url?: string }) {
         if (!firebaseUser.value) throw new Error('Not authenticated')
 
         const token = await firebaseUser.value.getIdToken()
@@ -206,6 +211,28 @@ export const useAuthStore = defineStore('auth', () => {
         const data = await res.json()
         user.value = data.data.user
         return user.value
+    }
+
+    // Upload profile photo
+    async function uploadProfilePhoto(file: File) {
+        if (!firebaseUser.value) throw new Error('Not authenticated')
+
+        const storage = useFirebaseStorage()
+        if (!storage) throw new Error('Firebase Storage not initialized')
+
+        try {
+            const fileRef = storageRef(storage, `users/${firebaseUser.value.uid}/avatar`)
+            await uploadBytes(fileRef, file)
+            const photoUrl = await getDownloadURL(fileRef)
+
+            // Update user profile with new photo URL
+            await updateProfile({ photo_url: photoUrl })
+
+            return photoUrl
+        } catch (e: any) {
+            console.error('Upload error:', e)
+            throw new Error('Failed to upload photo')
+        }
     }
 
     // Initialize on client
@@ -231,6 +258,7 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         fetchCurrentUser,
         updateProfile,
+        uploadProfilePhoto,
         getIdToken,
         getAuthHeader,
         initAuth

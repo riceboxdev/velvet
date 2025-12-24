@@ -1,7 +1,9 @@
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth, onAuthStateChanged, type Auth } from 'firebase/auth'
+import { getStorage, type FirebaseStorage } from 'firebase/storage'
 
 let auth: Auth
+let storage: FirebaseStorage
 
 export default defineNuxtPlugin(async (nuxtApp) => {
     const config = useRuntimeConfig()
@@ -19,9 +21,11 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     // Initialize Firebase
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
     auth = getAuth(app)
+    storage = getStorage(app)
 
     // Make auth available throughout the app
     nuxtApp.provide('auth', auth)
+    nuxtApp.provide('storage', storage)
 
     // Wait for initial auth state
     await new Promise<void>((resolve) => {
@@ -33,3 +37,4 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 })
 
 export const useFirebaseAuth = () => auth
+export const useFirebaseStorage = () => storage

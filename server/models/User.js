@@ -49,7 +49,7 @@ class User {
      * Update user
      */
     static async update(uid, updates) {
-        const allowedFields = ['name', 'email'];
+        const allowedFields = ['name', 'email', 'bio', 'website', 'company', 'photo_url'];
         const updateData = { updated_at: FieldValue.serverTimestamp() };
 
         for (const field of allowedFields) {

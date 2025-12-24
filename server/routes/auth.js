@@ -80,10 +80,17 @@ router.get('/me', verifyToken, async (req, res) => {
  */
 router.put('/profile', authenticateToken, async (req, res) => {
     try {
-        const { name, email } = req.body;
+        const { name, email, bio, website, company, photo_url } = req.body;
         const decodedToken = req.auth;
 
-        const user = await User.update(decodedToken.uid, { name, email });
+        const user = await User.update(decodedToken.uid, {
+            name,
+            email,
+            bio,
+            website,
+            company,
+            photo_url
+        });
 
         res.json({
             success: true,
