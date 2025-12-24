@@ -3,7 +3,16 @@ import { useWaitlistStore } from '~/stores/waitlist'
 
 const store = useWaitlistStore()
 const saving = ref(false)
+const toast = useToast()
 
+// Notification toggles
+const notifications = ref({
+  emailNewSignups: true,
+  emailOnReferral: false,
+  sendOffboardingEmail: false
+})
+
+// SMTP configuration
 const email = ref({
   smtpHost: '',
   smtpPort: '587',
@@ -21,6 +30,11 @@ onMounted(async () => {
     await store.fetchWaitlist()
     if (store.currentWaitlist) {
       const settings = (store.currentWaitlist as any)?.settings || {}
+      // Populate notification toggles
+      notifications.value.emailNewSignups = settings.emailNewSignups ?? true
+      notifications.value.emailOnReferral = settings.emailOnReferral ?? false
+      notifications.value.sendOffboardingEmail = settings.sendOffboardingEmail ?? false
+      // Populate email config
       if (settings.email) {
         email.value = { ...email.value, ...settings.email }
       }
@@ -33,6 +47,9 @@ async function saveSettings() {
   try {
     await store.updateWaitlistSettings({
       settings: {
+        emailNewSignups: notifications.value.emailNewSignups,
+        emailOnReferral: notifications.value.emailOnReferral,
+        sendOffboardingEmail: notifications.value.sendOffboardingEmail,
         email: {
           ...email.value,
           // Don't save actual password if unchanged
@@ -41,9 +58,9 @@ async function saveSettings() {
       }
     })
     await store.fetchWaitlist()
+    toast.add({ title: 'Settings saved', icon: 'i-lucide-check' })
   } catch (e: any) {
-    // eslint-disable-next-line no-alert
-    alert('Failed to save: ' + e.message)
+    toast.add({ title: 'Failed to save', description: e.message, color: 'error' })
   } finally {
     saving.value = false
   }
@@ -66,6 +83,29 @@ async function saveSettings() {
         class="w-fit lg:ms-auto"
         @click="saveSettings"
       />
+    </UPageCard>
+
+    <!-- Notification Toggles -->
+    <UPageCard title="Send Emails" description="Configure which automated emails to send" class="mb-6">
+      <div class="space-y-4">
+        <UCheckbox
+          v-model="notifications.emailNewSignups"
+          label="Email New Signups"
+          description="Send a welcome email with referral link and position when someone signs up"
+        />
+
+        <UCheckbox
+          v-model="notifications.emailOnReferral"
+          label="Congratulate on Referral"
+          description="Send an email when someone successfully refers another person"
+        />
+
+        <UCheckbox
+          v-model="notifications.sendOffboardingEmail"
+          label="Send Offboarding Email"
+          description="Send an email when you admit a user from the waitlist"
+        />
+      </div>
     </UPageCard>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

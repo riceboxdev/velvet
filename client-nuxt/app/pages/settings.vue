@@ -11,6 +11,14 @@ const links = computed<NavigationMenuItem[][]>(() => {
     to: '/settings',
     exact: true
   }, {
+    label: 'Signup Form',
+    icon: 'i-lucide-file-text',
+    to: '/settings/signup-form'
+  }, {
+    label: 'Domains',
+    icon: 'i-lucide-shield',
+    to: '/settings/domains'
+  }, {
     label: 'Branding',
     icon: 'i-lucide-palette',
     to: '/settings/branding'
@@ -22,6 +30,10 @@ const links = computed<NavigationMenuItem[][]>(() => {
     label: 'API',
     icon: 'i-lucide-code',
     to: '/settings/api'
+  }, {
+    label: 'Danger Zone',
+    icon: 'i-lucide-alert-triangle',
+    to: '/settings/danger'
   }]
 
   // Add Appearance link for admins

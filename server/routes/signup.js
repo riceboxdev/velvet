@@ -48,6 +48,44 @@ router.post('/', async (req, res) => {
             return res.status(403).json({ error: 'Waitlist is not active' });
         }
 
+        // Get waitlist settings with defaults
+        const settings = { ...Waitlist.getDefaultSettings(), ...(waitlist.settings || {}) };
+
+        // Check if waitlist is closed
+        if (settings.closed) {
+            return res.status(403).json({
+                error: 'Waitlist closed',
+                message: 'This waitlist is currently not accepting new signups'
+            });
+        }
+
+        // Validate domain restrictions
+        const emailDomain = email.toLowerCase().split('@')[1];
+
+        // Check permitted domains (if any specified)
+        if (settings.permittedDomains && settings.permittedDomains.length > 0) {
+            const isPermitted = settings.permittedDomains.some(domain =>
+                emailDomain === domain.toLowerCase() || emailDomain.endsWith('.' + domain.toLowerCase())
+            );
+            if (!isPermitted) {
+                return res.status(403).json({
+                    error: 'Domain not permitted',
+                    message: `Only emails from ${settings.permittedDomains.join(', ')} are allowed`
+                });
+            }
+        }
+
+        // Check if blocking free email providers
+        if (settings.blockFreeEmails) {
+            const freeEmailDomains = Waitlist.getFreeEmailDomains();
+            if (freeEmailDomains.includes(emailDomain)) {
+                return res.status(403).json({
+                    error: 'Personal email not allowed',
+                    message: 'Please use a business or organizational email address'
+                });
+            }
+        }
+
         // Check if already signed up
         const existing = await Signup.findByEmail(waitlist.id, email);
         if (existing) {
@@ -63,13 +101,17 @@ router.post('/', async (req, res) => {
         }
 
         // Create signup (support both referral_code and referral_link)
+        // Priority boost = spotsSkippedOnReferral * 10 (to allow for fractional ordering)
+        const priorityBoost = (settings.spotsSkippedOnReferral || 3) * 10;
+
         const signup = await Signup.create({
             waitlistId: waitlist.id,
             email,
             referredBy: referral_code || referral_link || null,
             metadata,
             ipAddress: req.ip,
-            userAgent: req.headers['user-agent']
+            userAgent: req.headers['user-agent'],
+            priorityBoost
         });
 
         res.status(201).json({

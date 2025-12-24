@@ -4,7 +4,72 @@ const { nanoid } = require('nanoid');
 
 const COLLECTION = 'waitlists';
 
+/**
+ * Default settings schema for a waitlist
+ * Mirrors GetWaitlist.com feature set
+ */
+const DEFAULT_SETTINGS = {
+    // General
+    spotsSkippedOnReferral: 3,
+    hideSignupCount: false,
+    hideTotalCount: false,
+    rankByReferrals: false,
+    closed: false,
+    enableCaptcha: false,
+    hideReferralLink: false,
+    allowSignupDataUpdate: false,
+
+    // Collect Info
+    requireName: false,
+    termsUrl: null,
+    contactType: 'email', // 'email' | 'phone'
+
+    // Redirection
+    redirectOnSubmit: false,
+    redirectUrl: null,
+
+    // Email Verification
+    verifySignupsByEmail: false,
+    requireVerificationForReferrals: false,
+    customVerificationRedirect: null,
+
+    // Domain Restrictions
+    permittedDomains: [],
+    blockFreeEmails: false,
+    verificationBypassDomains: [],
+
+    // Email Notifications
+    emailNewSignups: true,
+    emailOnReferral: false,
+    sendOffboardingEmail: false,
+
+    // Leaderboard
+    showLeaderboard: true,
+    leaderboardSize: 5
+};
+
+// Common free email domains to block when blockFreeEmails is enabled
+const FREE_EMAIL_DOMAINS = [
+    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
+    'icloud.com', 'mail.com', 'protonmail.com', 'zoho.com', 'yandex.com',
+    'gmx.com', 'live.com', 'msn.com', 'me.com'
+];
+
 class Waitlist {
+    /**
+     * Get default settings
+     */
+    static getDefaultSettings() {
+        return { ...DEFAULT_SETTINGS };
+    }
+
+    /**
+     * Get free email domains list
+     */
+    static getFreeEmailDomains() {
+        return FREE_EMAIL_DOMAINS;
+    }
+
     /**
      * Create a new waitlist
      */
@@ -17,7 +82,7 @@ class Waitlist {
             name,
             description,
             api_key: apiKey,
-            settings: {},
+            settings: { ...DEFAULT_SETTINGS },
             total_signups: 0,
             is_active: true,
             created_at: FieldValue.serverTimestamp(),

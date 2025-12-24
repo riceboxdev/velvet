@@ -8,8 +8,9 @@ const COLLECTION = 'signups';
 class Signup {
     /**
      * Create a new signup
+     * @param {number} priorityBoost - Priority increase for referrer (defaults to spotsSkippedOnReferral * 10)
      */
-    static async create({ waitlistId, email, referredBy = null, metadata = {}, ipAddress = null, userAgent = null }) {
+    static async create({ waitlistId, email, referredBy = null, metadata = {}, ipAddress = null, userAgent = null, priorityBoost = 30 }) {
         const id = nanoid(20);
         const referralCode = nanoid(10);
 
@@ -41,7 +42,7 @@ class Signup {
 
         // Update referrer's count and priority if referred
         if (referredBy) {
-            await this.incrementReferralCount(referredBy);
+            await this.incrementReferralCount(referredBy, priorityBoost);
         }
 
         // Increment waitlist total
@@ -128,15 +129,19 @@ class Signup {
 
     /**
      * Increment referral count for a signup
+     * @param {string} referralCode - The referrer's code
+     * @param {number} priorityBoost - How much to boost priority (default: 10, typically spotsSkippedOnReferral * 10)
      */
-    static async incrementReferralCount(referralCode) {
+    static async incrementReferralCount(referralCode, priorityBoost = 10) {
         const signup = await this.findByReferralCode(referralCode);
-        if (!signup) return;
+        if (!signup) return null;
 
         await db.collection(COLLECTION).doc(signup.id).update({
             referral_count: FieldValue.increment(1),
-            priority: FieldValue.increment(10)
+            priority: FieldValue.increment(priorityBoost)
         });
+
+        return signup;
     }
 
     /**
