@@ -12,7 +12,7 @@ if (!authStore.user?.is_admin) {
   navigateTo('/settings')
 }
 
-const colors = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose']
+const colors = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose', 'slate', 'gray', 'zinc', 'neutral', 'stone']
 const neutrals = ['slate', 'gray', 'zinc', 'neutral', 'stone']
 
 // Local refs bound to theme store

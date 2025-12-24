@@ -1,36 +1,26 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
 class EmailService {
-    constructor() {
-        this.transporter = null;
-        this.from = process.env.EMAIL_FROM || 'noreply@waitlist.local';
-
-        // Initialize transporter if email config is provided
-        if (process.env.SMTP_HOST) {
-            this.transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST,
-                port: process.env.SMTP_PORT || 587,
-                secure: process.env.SMTP_SECURE === 'true',
-                auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS
-                }
-            });
-        }
+  constructor() {
+    if (process.env.SENDGRID_API_KEY) {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      this.enabled = true;
+    } else {
+      console.warn('[Email] SENDGRID_API_KEY not found. Email sending disabled.');
+      this.enabled = false;
     }
+    this.from = process.env.EMAIL_FROM || 'noreply@waitlist.local';
+  }
 
-    async sendWelcomeEmail(signup, waitlist) {
-        if (!this.transporter) {
-            console.log('[Email] Transporter not configured, skipping welcome email');
-            return null;
-        }
+  async sendWelcomeEmail(signup, waitlist) {
+    if (!this.enabled) return null;
 
-        const settings = waitlist.settings || {};
-        const subject = settings.welcomeEmailSubject || `Welcome to the ${waitlist.name} waitlist!`;
+    const settings = waitlist.settings || {};
+    const subject = settings.welcomeEmailSubject || `Welcome to the ${waitlist.name} waitlist!`;
 
-        const referralLink = `${process.env.BASE_URL || 'http://localhost:3000'}/join/${waitlist.id}?ref=${signup.referral_code}`;
+    const referralLink = `${process.env.BASE_URL || 'http://localhost:3000'}/join/${waitlist.id}?ref=${signup.referral_code}`;
 
-        const html = settings.welcomeEmailTemplate || `
+    const html = settings.welcomeEmailTemplate || `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #333;">You're on the list! 🎉</h1>
         <p>Thanks for joining the <strong>${waitlist.name}</strong> waitlist.</p>
@@ -53,25 +43,29 @@ class EmailService {
       </div>
     `;
 
-        try {
-            const result = await this.transporter.sendMail({
-                from: this.from,
-                to: signup.email,
-                subject,
-                html
-            });
-            console.log(`[Email] Sent welcome email to ${signup.email}`);
-            return result;
-        } catch (error) {
-            console.error(`[Email] Failed to send welcome email: ${error.message}`);
-            throw error;
-        }
+    try {
+      const msg = {
+        to: signup.email,
+        from: this.from,
+        subject,
+        html
+      };
+      const result = await sgMail.send(msg);
+      console.log(`[Email] Sent welcome email to ${signup.email}`);
+      return result;
+    } catch (error) {
+      console.error(`[Email] Failed to send welcome email: ${error.message}`);
+      if (error.response) {
+        console.error(error.response.body);
+      }
+      throw error; // Re-throw or handle as needed
     }
+  }
 
-    async sendReferralNotification(referrer, newReferralCount, waitlist) {
-        if (!this.transporter) return null;
+  async sendReferralNotification(referrer, newReferralCount, waitlist) {
+    if (!this.enabled) return null;
 
-        const html = `
+    const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #333;">Someone used your referral! 🎊</h1>
         <p>Great news! Someone just joined <strong>${waitlist.name}</strong> using your referral link.</p>
@@ -80,26 +74,31 @@ class EmailService {
       </div>
     `;
 
-        try {
-            return await this.transporter.sendMail({
-                from: this.from,
-                to: referrer.email,
-                subject: `You got a new referral on ${waitlist.name}!`,
-                html
-            });
-        } catch (error) {
-            console.error(`[Email] Failed to send referral notification: ${error.message}`);
-            throw error;
-        }
+    try {
+      const msg = {
+        to: referrer.email,
+        from: this.from,
+        subject: `You got a new referral on ${waitlist.name}!`,
+        html
+      };
+      return await sgMail.send(msg);
+    } catch (error) {
+      console.error(`[Email] Failed to send referral notification: ${error.message}`);
+      if (error.response) {
+        console.error(error.response.body);
+      }
+      // Don't throw for notifications to avoid breaking the signup flow of the referred user
+      return null;
     }
+  }
 
-    async sendOffboardingEmail(signup, waitlist) {
-        if (!this.transporter) return null;
+  async sendOffboardingEmail(signup, waitlist) {
+    if (!this.enabled) return null;
 
-        const settings = waitlist.settings || {};
-        const subject = settings.offboardEmailSubject || `You're in! Welcome to ${waitlist.name}`;
+    const settings = waitlist.settings || {};
+    const subject = settings.offboardEmailSubject || `You're in! Welcome to ${waitlist.name}`;
 
-        const html = settings.offboardEmailTemplate || `
+    const html = settings.offboardEmailTemplate || `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #333;">🎉 You've been granted access!</h1>
         <p>Congratulations! You've been selected from the <strong>${waitlist.name}</strong> waitlist.</p>
@@ -108,18 +107,22 @@ class EmailService {
       </div>
     `;
 
-        try {
-            return await this.transporter.sendMail({
-                from: this.from,
-                to: signup.email,
-                subject,
-                html
-            });
-        } catch (error) {
-            console.error(`[Email] Failed to send offboarding email: ${error.message}`);
-            throw error;
-        }
+    try {
+      const msg = {
+        to: signup.email,
+        from: this.from,
+        subject,
+        html
+      };
+      return await sgMail.send(msg);
+    } catch (error) {
+      console.error(`[Email] Failed to send offboarding email: ${error.message}`);
+      if (error.response) {
+        console.error(error.response.body);
+      }
+      throw error;
     }
+  }
 }
 
 module.exports = new EmailService();
