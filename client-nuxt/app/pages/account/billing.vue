@@ -80,12 +80,19 @@ async function fetchSubscription() {
 
 async function fetchPlans() {
   try {
-    const response = await fetch(`${API_URL}/subscription/plans`)
+    const url = `${API_URL}/subscription/plans`
+    console.log('[Billing] Fetching plans from:', url)
+    const response = await fetch(url)
+    console.log('[Billing] Plans response status:', response.status)
     if (response.ok) {
-      plans.value = await response.json()
+      const data = await response.json()
+      console.log('[Billing] Plans fetched:', data?.length, 'plans')
+      plans.value = data
+    } else {
+      console.error('[Billing] Plans fetch failed:', response.status)
     }
   } catch (e) {
-    console.error('Failed to fetch plans:', e)
+    console.error('[Billing] Failed to fetch plans:', e)
   }
 }
 
