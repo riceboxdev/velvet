@@ -39,8 +39,7 @@ function copyToClipboard(text: string, key: string) {
         color="neutral"
         variant="outline"
         icon="i-lucide-book-open"
-        to="https://docs.example.com"
-        target="_blank"
+        to="/docs/api"
         class="w-fit lg:ms-auto"
       />
     </UPageCard>

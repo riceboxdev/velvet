@@ -127,8 +127,7 @@ const links = computed<NavigationMenuItem[][]>(() => {
   const footerLinks: NavigationMenuItem[] = [{
     label: 'Help & Support',
     icon: 'i-lucide-info',
-    to: 'https://docs.example.com',
-    target: '_blank'
+    to: '/docs'
   }]
 
   return [mainLinks, footerLinks]

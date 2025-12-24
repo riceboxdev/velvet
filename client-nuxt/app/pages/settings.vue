@@ -48,8 +48,7 @@ const links = computed<NavigationMenuItem[][]>(() => {
   return [mainLinks, [{
     label: 'Documentation',
     icon: 'i-lucide-book-open',
-    to: 'https://docs.example.com',
-    target: '_blank'
+    to: '/docs'
   }]]
 })
 </script>

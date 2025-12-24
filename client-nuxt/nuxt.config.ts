@@ -4,9 +4,21 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',
+    '@nuxt/content',
+    '@nuxt/image',
     '@vueuse/nuxt',
     '@pinia/nuxt'
   ],
+
+  content: {
+    build: {
+      markdown: {
+        toc: {
+          searchDepth: 1
+        }
+      }
+    }
+  },
 
   runtimeConfig: {
     public: {
