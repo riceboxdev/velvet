@@ -1,7 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const { authenticateToken: verifyToken, optionalAuth } = require('../middleware/auth');
+const Signup = require('../models/Signup');
+const Waitlist = require('../models/Waitlist');
 const emailService = require('../services/email');
 
-// ... [existing imports]
-
+/**
+ * POST /signup
+ * Public endpoint - Add someone to a waitlist
+ * Supports both API key (x-api-key header) and direct waitlist_id in body
+ */
 router.post('/', async (req, res) => {
     // ... [existing logic] 
 
