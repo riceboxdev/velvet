@@ -39,6 +39,7 @@ const DEFAULT_SETTINGS = {
     verificationBypassDomains: [],
 
     // Email Notifications
+    sendWelcomeEmail: false,
     emailNewSignups: true,
     emailOnReferral: false,
 
