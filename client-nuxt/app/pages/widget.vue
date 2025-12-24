@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useWaitlistStore } from '~/stores/waitlist'
+import { useAuthStore } from '~/stores/auth'
 
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substring(2, 10)
 
 const store = useWaitlistStore()
+const authStore = useAuthStore()
 const toast = useToast()
 
 // Active tab
@@ -410,7 +412,9 @@ function previewTweet() {
               v-model="design.showBranding"
               label="Waitlist Branding"
               description="Show Velvet branding on no-code widgets"
+              :disabled="!authStore.subscription?.features.includes('remove_branding')"
             />
+            <p v-if="!authStore.subscription?.features.includes('remove_branding')" class="text-xs text-primary mt-1 pl-7">Upgrade to Advanced to remove branding</p>
 
             <UFormField label="Logo">
               <p class="text-xs text-dimmed mb-2">Your logo will only be displayed on the hosted page and not the widget</p>

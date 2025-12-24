@@ -22,6 +22,7 @@ interface Waitlist {
     id: string
     name: string
     description?: string
+    api_key: string
     settings?: WaitlistSettings
     stats?: WaitlistStats
     created_at: string
@@ -69,6 +70,13 @@ interface QuestionItem {
     optional: boolean
 }
 
+interface ConnectorsSettings {
+    zapier: { enabled: boolean }
+    webhook: { url: string }
+    slack: { enabled: boolean }
+    hubspot: { enabled: boolean }
+}
+
 interface QuestionsSettings {
     hideHeader: boolean
     items: QuestionItem[]
@@ -90,6 +98,7 @@ interface WaitlistSettings {
     widget?: WidgetSettings
     social?: SocialSettings
     questions?: QuestionsSettings
+    connectors?: ConnectorsSettings
 }
 
 export const useWaitlistStore = defineStore('waitlist', () => {

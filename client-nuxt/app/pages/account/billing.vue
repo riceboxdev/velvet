@@ -75,8 +75,8 @@ function formatDate(dateStr: string) {
   })
 }
 
-function formatNumber(num: number | null) {
-  if (!num) return 'Unlimited'
+function formatNumber(num: number | null | undefined) {
+  if (num === null || num === undefined) return 'Unlimited'
   if (num >= 1000) return (num / 1000).toFixed(0) + 'k'
   return num.toString()
 }

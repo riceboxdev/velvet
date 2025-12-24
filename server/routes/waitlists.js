@@ -98,6 +98,16 @@ router.get('/:id', async (req, res) => {
  * PUT /api/waitlists/:id
  * Update a waitlist
  */
+const Subscription = require('../models/Subscription');
+
+// ... (existing imports)
+
+// ...
+
+/**
+ * PUT /api/waitlists/:id
+ * Update a waitlist
+ */
 router.put('/:id', async (req, res) => {
     try {
         const waitlist = await Waitlist.findById(req.params.id);
@@ -111,6 +121,69 @@ router.put('/:id', async (req, res) => {
         }
 
         const { name, description, settings, is_active } = req.body;
+
+        // Feature Gating Logic
+        if (settings) {
+            const limits = await Subscription.getUserLimits(req.auth.uid);
+            const features = limits.features || [];
+
+            // Remove Branding
+            if (settings.widget?.showBranding === false && !features.includes('remove_branding')) {
+                return res.status(403).json({
+                    error: 'Feature restricted',
+                    details: 'Upgrade required to remove branding',
+                    feature: 'remove_branding'
+                });
+            }
+
+            // Zapier
+            if (settings.connectors?.zapier?.enabled && !features.includes('zapier_integration')) {
+                return res.status(403).json({
+                    error: 'Feature restricted',
+                    details: 'Upgrade required for Zapier integration',
+                    feature: 'zapier_integration'
+                });
+            }
+
+            // Hide Counts
+            if ((settings.hidePosition || settings.hideSignupCount) && !features.includes('hide_position_count')) {
+                return res.status(403).json({
+                    error: 'Feature restricted',
+                    details: 'Upgrade required to hide signup counts',
+                    feature: 'hide_position_count'
+                });
+            }
+
+            // Block Free Emails
+            if (settings.blockFreeEmails && !features.includes('block_personal_emails')) {
+                return res.status(403).json({
+                    error: 'Feature restricted',
+                    details: 'Upgrade required to block personal emails',
+                    feature: 'block_personal_emails'
+                });
+            }
+
+            // Permitted Domains
+            if (settings.permittedDomains?.length > 0 && !features.includes('allowed_domains')) {
+                return res.status(403).json({
+                    error: 'Feature restricted',
+                    details: 'Upgrade required to whitelist domains',
+                    feature: 'allowed_domains'
+                });
+            }
+
+            // Custom Offboarding Email
+            if (settings.sendOffboardingEmail === true && !features.includes('custom_offboarding_email')) {
+                // If they just enable it but don't change content? 
+                // Plan says "Custom Offboarding Emails" is Pro. "Send Offboarding Email" might be the feature itself.
+                return res.status(403).json({
+                    error: 'Feature restricted',
+                    details: 'Upgrade required for offboarding emails',
+                    feature: 'custom_offboarding_email'
+                });
+            }
+        }
+
         const updated = await Waitlist.update(req.params.id, { name, description, settings, is_active });
         const stats = await Waitlist.getStats(updated.id);
 

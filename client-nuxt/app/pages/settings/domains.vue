@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useWaitlistStore } from '~/stores/waitlist'
+import { useAuthStore } from '~/stores/auth'
 
 const store = useWaitlistStore()
+const authStore = useAuthStore()
 const saving = ref(false)
 const toast = useToast()
 
@@ -117,9 +119,11 @@ function removeBypassDomain(domain: string) {
               placeholder="company.com"
               class="flex-1"
               @keyup.enter="addPermittedDomain"
+              :disabled="!authStore.subscription?.features.includes('allowed_domains')"
             />
-            <UButton icon="i-lucide-plus" @click="addPermittedDomain" />
+            <UButton icon="i-lucide-plus" @click="addPermittedDomain" :disabled="!authStore.subscription?.features.includes('allowed_domains')" />
           </div>
+          <p v-if="!authStore.subscription?.features.includes('allowed_domains')" class="text-xs text-primary mt-1 mb-2">Upgrade to whitelist specific domains (Advanced+)</p>
           <div v-if="form.permittedDomains.length > 0" class="flex flex-wrap gap-2">
             <UBadge
               v-for="domain in form.permittedDomains"
@@ -140,11 +144,15 @@ function removeBypassDomain(domain: string) {
           <p v-else class="text-sm text-dimmed">All email domains are currently allowed</p>
         </UFormField>
 
-        <UCheckbox
-          v-model="form.blockFreeEmails"
-          label="Block Free/Personal Emails"
-          description="Block signups from gmail.com, yahoo.com, outlook.com, and other free email providers"
-        />
+        <div class="flex items-start justify-between gap-4">
+          <UCheckbox
+            v-model="form.blockFreeEmails"
+            label="Block Free/Personal Emails"
+            description="Block signups from gmail.com, yahoo.com, outlook.com, and other free email providers"
+            :disabled="!authStore.subscription?.features.includes('block_personal_emails')"
+          />
+          <UBadge v-if="!authStore.subscription?.features.includes('block_personal_emails')" color="primary" variant="subtle" size="xs">Advanced</UBadge>
+        </div>
       </div>
     </UPageCard>
 

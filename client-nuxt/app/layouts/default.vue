@@ -66,6 +66,13 @@ const links = computed<NavigationMenuItem[][]>(() => {
       open.value = false
     }
   }, {
+    label: 'Connectors',
+    icon: 'i-lucide-link',
+    to: '/connectors',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
     label: 'Settings',
     to: '/settings',
     icon: 'i-lucide-settings',

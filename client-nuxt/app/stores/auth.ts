@@ -6,6 +6,14 @@ import {
     onAuthStateChanged,
     type User as FirebaseUser
 } from 'firebase/auth'
+
+interface SubscriptionLimits {
+    max_waitlists: number | null
+    max_signups_per_month: number | null
+    features: string[]
+    plan_name: string
+    has_subscription: boolean
+}
 import { useFirebaseAuth, useFirebaseStorage } from '~/plugins/firebase.client'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
@@ -29,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // State
     const user = ref<User | null>(null)
+    const subscription = ref<SubscriptionLimits | null>(null)
     const firebaseUser = ref<FirebaseUser | null>(null)
     const loading = ref(false)
     const error = ref<string | null>(null)
@@ -69,6 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
                 await fetchCurrentUser()
             } else {
                 user.value = null
+                subscription.value = null
             }
 
             initialized.value = true
@@ -165,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             const data = await res.json()
             user.value = data.data.user
+            subscription.value = data.data.subscription || null
             return user.value
         } catch (e: any) {
             error.value = e.message
@@ -221,9 +232,22 @@ export const useAuthStore = defineStore('auth', () => {
         if (!storage) throw new Error('Firebase Storage not initialized')
 
         try {
+            const config = useRuntimeConfig()
+            console.log('Starting upload...', {
+                uid: firebaseUser.value.uid,
+                storageBucket: config.public.firebaseStorageBucket,
+                fileName: file.name,
+                fileSize: file.size
+            })
+
             const fileRef = storageRef(storage, `users/${firebaseUser.value.uid}/avatar`)
-            await uploadBytes(fileRef, file)
+
+            console.log('Uploading bytes...')
+            const snapshot = await uploadBytes(fileRef, file)
+            console.log('Upload complete, snapshot:', snapshot)
+
             const photoUrl = await getDownloadURL(fileRef)
+            console.log('Got download URL:', photoUrl)
 
             // Update user profile with new photo URL
             await updateProfile({ photo_url: photoUrl })
@@ -231,7 +255,7 @@ export const useAuthStore = defineStore('auth', () => {
             return photoUrl
         } catch (e: any) {
             console.error('Upload error:', e)
-            throw new Error('Failed to upload photo')
+            throw new Error('Failed to upload photo: ' + e.message)
         }
     }
 
@@ -244,6 +268,7 @@ export const useAuthStore = defineStore('auth', () => {
     return {
         // State
         user,
+        subscription,
         firebaseUser,
         loading,
         error,

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useWaitlistStore } from '~/stores/waitlist'
+import { useAuthStore } from '~/stores/auth'
 
 const store = useWaitlistStore()
+const authStore = useAuthStore()
 const saving = ref(false)
 const toast = useToast()
 
@@ -15,6 +17,7 @@ const form = ref({
   // Visibility
   hideSignupCount: false,
   hideTotalCount: false,
+  hidePosition: false,
   hideReferralLink: false,
   // Controls
   closed: false,
@@ -45,6 +48,7 @@ function populateForm() {
   form.value.rankByReferrals = settings.rankByReferrals ?? false
   form.value.hideSignupCount = settings.hideSignupCount ?? false
   form.value.hideTotalCount = settings.hideTotalCount ?? false
+  form.value.hidePosition = settings.hidePosition ?? false
   form.value.hideReferralLink = settings.hideReferralLink ?? false
   form.value.closed = settings.closed ?? false
   form.value.enableCaptcha = settings.enableCaptcha ?? false
@@ -64,6 +68,7 @@ async function saveSettings() {
         rankByReferrals: form.value.rankByReferrals,
         hideSignupCount: form.value.hideSignupCount,
         hideTotalCount: form.value.hideTotalCount,
+        hidePosition: form.value.hidePosition,
         hideReferralLink: form.value.hideReferralLink,
         closed: form.value.closed,
         enableCaptcha: form.value.enableCaptcha,
@@ -173,23 +178,43 @@ async function saveSettings() {
     <!-- Visibility Settings -->
     <UPageCard title="Visibility" description="Control what users can see" class="mb-6">
       <div class="space-y-4">
-        <UCheckbox
-          v-model="form.hideSignupCount"
-          label="Hide Signup Count"
-          description="Don't show the total number of signups on the widget"
-        />
+        <div class="space-y-4">
+          <div class="flex items-start justify-between gap-4">
+            <UCheckbox
+              v-model="form.hideSignupCount"
+              label="Hide Signup Count"
+              description="Don't show the total number of signups on the widget"
+              :disabled="!authStore.subscription?.features.includes('hide_position_count')"
+            />
+            <UBadge v-if="!authStore.subscription?.features.includes('hide_position_count')" color="primary" variant="subtle" size="xs">Pro</UBadge>
+          </div>
 
-        <UCheckbox
-          v-model="form.hideTotalCount"
-          label="Hide Total Count"
-          description="Hide total waiters but still show user's position"
-        />
+          <div class="flex items-start justify-between gap-4">
+            <UCheckbox
+              v-model="form.hideTotalCount"
+              label="Hide Total Count"
+              description="Hide total waiters but still show user's position"
+              :disabled="!authStore.subscription?.features.includes('hide_position_count')"
+            />
+            <UBadge v-if="!authStore.subscription?.features.includes('hide_position_count')" color="primary" variant="subtle" size="xs">Pro</UBadge>
+          </div>
 
-        <UCheckbox
-          v-model="form.hideReferralLink"
-          label="Hide Referral Link"
-          description="Don't show the referral link to users after signup"
-        />
+          <div class="flex items-start justify-between gap-4">
+            <UCheckbox
+              v-model="form.hidePosition"
+              label="Hide Position"
+              description="Don't show the user's position (rank)"
+              :disabled="!authStore.subscription?.features.includes('hide_position_count')"
+            />
+            <UBadge v-if="!authStore.subscription?.features.includes('hide_position_count')" color="primary" variant="subtle" size="xs">Pro</UBadge>
+          </div>
+
+          <UCheckbox
+            v-model="form.hideReferralLink"
+            label="Hide Referral Link"
+            description="Don't show the referral link to users after signup"
+          />
+        </div>
       </div>
     </UPageCard>
 

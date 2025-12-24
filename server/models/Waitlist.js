@@ -41,7 +41,13 @@ const DEFAULT_SETTINGS = {
     // Email Notifications
     emailNewSignups: true,
     emailOnReferral: false,
+
     sendOffboardingEmail: false,
+    offboardingEmailSubject: '',
+    offboardingEmailText: '',
+
+    // Display
+    hidePosition: false,
 
     // Leaderboard
     showLeaderboard: true,

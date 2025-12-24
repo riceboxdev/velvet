@@ -57,17 +57,32 @@ const FEATURE_LABELS: Record<string, string> = {
   sso: 'Single Sign-On (SSO)',
   custom_sla: 'Custom SLA',
   dedicated_support: 'Dedicated support manager',
-  custom_features: 'Custom feature development'
+  custom_features: 'Custom feature development',
+  analytics_basic: 'Basic Analytics',
+  analytics_deep: 'Deep Analytics',
+  hide_position_count: 'Hide position & signup count',
+  block_personal_emails: 'Block personal emails',
+  allowed_domains: 'Allowed domains whitelist',
+  custom_offboarding_email: 'Custom offboarding emails',
+  email_blasts: 'Email blasts',
+  multi_user_team: 'Team management'
 }
 
 const KEY_FEATURES = [
   'custom_branding',
   'api_access',
   'webhooks',
+  'analytics_basic',
   'remove_branding',
+  'zapier_integration',
+  'hide_position_count',
+  'block_personal_emails',
+  'allowed_domains',
   'custom_email_templates',
-  'advanced_analytics',
-  'priority_support',
+  'custom_offboarding_email',
+  'custom_domain_emails',
+  'email_blasts',
+  'multi_user_team',
   'sso'
 ]
 

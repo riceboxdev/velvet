@@ -1,12 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-
-
-/**
- * POST /api/auth/create-user
- * Create user document after Firebase Auth signup (called from client)
- */
+const Subscription = require('../models/Subscription');
 const { authenticateToken, verifyToken } = require('../middleware/auth');
 
 /**
@@ -63,9 +58,15 @@ router.get('/me', verifyToken, async (req, res) => {
         // Update last login
         await User.updateLastLogin(decodedToken.uid);
 
+        // Get subscription info (plan + limits)
+        const subscription = await Subscription.getUserLimits(decodedToken.uid);
+
         res.json({
             success: true,
-            data: { user }
+            data: {
+                user,
+                subscription
+            }
         });
 
     } catch (error) {
