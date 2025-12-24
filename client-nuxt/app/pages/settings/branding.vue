@@ -3,6 +3,7 @@ import { useWaitlistStore } from '~/stores/waitlist'
 
 const store = useWaitlistStore()
 const saving = ref(false)
+const toast = useToast()
 
 const branding = ref({
   primaryColor: '#6366f1',
@@ -30,15 +31,25 @@ onMounted(async () => {
 async function saveSettings() {
   saving.value = true
   try {
+    console.log('[Branding] Saving:', branding.value)
     await store.updateWaitlistSettings({
       settings: {
         branding: branding.value
       }
     })
     await store.fetchWaitlist()
+    toast.add({ 
+      title: 'Branding saved', 
+      icon: 'i-lucide-check',
+      color: 'success'
+    })
   } catch (e: any) {
-    // eslint-disable-next-line no-alert
-    alert('Failed to save: ' + e.message)
+    console.error('[Branding] Save error:', e)
+    toast.add({ 
+      title: 'Failed to save', 
+      description: e.message, 
+      color: 'error' 
+    })
   } finally {
     saving.value = false
   }
