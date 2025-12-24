@@ -27,6 +27,10 @@ const links = computed<NavigationMenuItem[][]>(() => {
     icon: 'i-lucide-bell',
     to: '/settings/notifications'
   }, {
+    label: 'Connectors',
+    icon: 'i-lucide-link',
+    to: '/settings/connectors'
+  }, {
     label: 'API',
     icon: 'i-lucide-code',
     to: '/settings/api'

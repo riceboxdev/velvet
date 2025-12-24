@@ -88,8 +88,24 @@ const DEFAULT_SETTINGS = {
     questions: {
         hideHeader: false,
         items: []  // Array of { id, question, answers, optional }
+    },
+
+    // Connectors
+    connectors: {
+        zapier: {
+            enabled: false
+        },
+        webhook: {
+            url: ''
+        },
+        slack: {
+            enabled: false
+        },
+        hubspot: {
+            enabled: false
+        }
     }
-};
+}
 
 // Common free email domains to block when blockFreeEmails is enabled
 const FREE_EMAIL_DOMAINS = [
