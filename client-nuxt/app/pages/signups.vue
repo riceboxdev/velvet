@@ -79,9 +79,24 @@ async function handleDelete(signup: any) {
   }
 }
 
-function formatDate(dateStr: string) {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('en-US', {
+function formatDate(dateInput: any) {
+  if (!dateInput) return '-'
+  
+  // Handle Firestore timestamp objects
+  let date: Date
+  if (dateInput._seconds !== undefined) {
+    date = new Date(dateInput._seconds * 1000)
+  } else if (dateInput.seconds !== undefined) {
+    date = new Date(dateInput.seconds * 1000)
+  } else if (typeof dateInput === 'string') {
+    date = new Date(dateInput)
+  } else if (dateInput instanceof Date) {
+    date = dateInput
+  } else {
+    return '-'
+  }
+  
+  return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
