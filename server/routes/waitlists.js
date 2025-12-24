@@ -273,7 +273,9 @@ router.post('/:id/test-email', async (req, res) => {
 
         // Get user's email from Firebase Auth
         const userRecord = await getAuth().getUser(req.auth.uid);
-        const email = userRecord.email;
+
+        // Use test email address for testing
+        const email = 'test@riceboxai.com';
 
         if (!email) {
             return res.status(400).json({ error: 'User has no email address' });
