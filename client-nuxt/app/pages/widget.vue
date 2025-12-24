@@ -131,6 +131,81 @@ function markChanged() {
   hasUnsavedChanges.value = true
 }
 
+// ============ IMAGE UPLOAD ============
+import { useFirebaseStorage } from '~/plugins/firebase.client'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+
+const uploadingLogo = ref(false)
+const uploadingBanner = ref(false)
+const logoInputRef = ref<HTMLInputElement | null>(null)
+const bannerInputRef = ref<HTMLInputElement | null>(null)
+
+function triggerLogoUpload() {
+  logoInputRef.value?.click()
+}
+
+function triggerBannerUpload() {
+  bannerInputRef.value?.click()
+}
+
+async function handleLogoUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadingLogo.value = true
+  try {
+    const storage = useFirebaseStorage()
+    if (!storage) throw new Error('Storage not initialized')
+
+    const waitlistId = store.currentWaitlist?.id
+    if (!waitlistId) throw new Error('No waitlist selected')
+
+    const fileRef = storageRef(storage, `waitlists/${waitlistId}/logo`)
+    await uploadBytes(fileRef, file)
+    const url = await getDownloadURL(fileRef)
+    
+    design.value.logoUrl = url
+    markChanged()
+    toast.add({ title: 'Logo uploaded', icon: 'i-lucide-check', color: 'success' })
+  } catch (e: any) {
+    console.error('Logo upload error:', e)
+    toast.add({ title: 'Upload failed', description: e.message, color: 'error' })
+  } finally {
+    uploadingLogo.value = false
+    input.value = ''
+  }
+}
+
+async function handleBannerUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadingBanner.value = true
+  try {
+    const storage = useFirebaseStorage()
+    if (!storage) throw new Error('Storage not initialized')
+
+    const waitlistId = store.currentWaitlist?.id
+    if (!waitlistId) throw new Error('No waitlist selected')
+
+    const fileRef = storageRef(storage, `waitlists/${waitlistId}/banner`)
+    await uploadBytes(fileRef, file)
+    const url = await getDownloadURL(fileRef)
+    
+    design.value.bannerImageUrl = url
+    markChanged()
+    toast.add({ title: 'Banner uploaded', icon: 'i-lucide-check', color: 'success' })
+  } catch (e: any) {
+    console.error('Banner upload error:', e)
+    toast.add({ title: 'Upload failed', description: e.message, color: 'error' })
+  } finally {
+    uploadingBanner.value = false
+    input.value = ''
+  }
+}
+
 // Watch for changes
 watch(design, () => markChanged(), { deep: true })
 watch(social, () => markChanged(), { deep: true })
@@ -418,16 +493,52 @@ function previewTweet() {
 
             <UFormField label="Logo">
               <p class="text-xs text-dimmed mb-2">Your logo will only be displayed on the hosted page and not the widget</p>
-              <UButton icon="i-lucide-upload" color="primary" size="sm">
-                Upload Logo
-              </UButton>
+              <div class="flex items-center gap-3">
+                <input 
+                  ref="logoInputRef" 
+                  type="file" 
+                  accept="image/*" 
+                  class="hidden" 
+                  @change="handleLogoUpload"
+                >
+                <UButton 
+                  icon="i-lucide-upload" 
+                  color="primary" 
+                  size="sm" 
+                  :loading="uploadingLogo"
+                  @click="triggerLogoUpload"
+                >
+                  {{ design.logoUrl ? 'Change Logo' : 'Upload Logo' }}
+                </UButton>
+                <img v-if="design.logoUrl" :src="design.logoUrl" alt="Logo preview" class="h-8 max-w-24 object-contain rounded" />
+                <UButton v-if="design.logoUrl" icon="i-lucide-x" color="neutral" variant="ghost" size="xs" @click="design.logoUrl = ''" />
+              </div>
             </UFormField>
 
             <UFormField label="Banner Image">
               <p class="text-xs text-dimmed mb-2">Your banner will only be displayed on the hosted page and not the widget</p>
-              <UButton icon="i-lucide-upload" color="primary" size="sm">
-                Upload Banner
-              </UButton>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                  <input 
+                    ref="bannerInputRef" 
+                    type="file" 
+                    accept="image/*" 
+                    class="hidden" 
+                    @change="handleBannerUpload"
+                  >
+                  <UButton 
+                    icon="i-lucide-upload" 
+                    color="primary" 
+                    size="sm" 
+                    :loading="uploadingBanner"
+                    @click="triggerBannerUpload"
+                  >
+                    {{ design.bannerImageUrl ? 'Change Banner' : 'Upload Banner' }}
+                  </UButton>
+                  <UButton v-if="design.bannerImageUrl" icon="i-lucide-x" color="neutral" variant="ghost" size="xs" @click="design.bannerImageUrl = ''" />
+                </div>
+                <img v-if="design.bannerImageUrl" :src="design.bannerImageUrl" alt="Banner preview" class="w-full max-h-32 object-cover rounded" />
+              </div>
             </UFormField>
           </div>
 
