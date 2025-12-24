@@ -12,6 +12,10 @@ const searchQuery = ref('')
 const pagination = ref({ total: 0, hasMore: false })
 
 onMounted(async () => {
+  // Ensure waitlists are loaded first
+  if (!store.currentWaitlist) {
+    await store.fetchAllWaitlists()
+  }
   await loadSignups()
 })
 
