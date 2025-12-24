@@ -114,13 +114,7 @@ const links = computed<NavigationMenuItem[][]>(() => {
       onSelect: () => {
         open.value = false
       }
-    }] : []), {
-      label: 'Danger Zone',
-      to: '/settings/danger',
-      onSelect: () => {
-        open.value = false
-      }
-    }]
+    }] : [])]
   }]
 
   const footerLinks: NavigationMenuItem[] = [{
