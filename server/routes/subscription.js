@@ -379,4 +379,117 @@ router.get('/test/plans', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/subscription/test/seed-plans
+ * Seed initial plans into database (one-time setup)
+ */
+router.post('/test/seed-plans', authenticateToken, async (req, res) => {
+    try {
+        const plans = [
+            {
+                name: 'Free',
+                description: 'Get started with 1 waitlist',
+                monthlyPrice: 0,
+                annualPrice: 0,
+                maxWaitlists: 1,
+                maxSignupsPerMonth: 100,
+                maxTeamMembers: 1,
+                features: ['custom_branding', 'email_verification', 'csv_export'],
+                sortOrder: 0
+            },
+            {
+                name: 'Basic',
+                description: 'For individuals and small projects',
+                monthlyPrice: 15,
+                annualPrice: 120,
+                maxWaitlists: null,
+                maxSignupsPerMonth: null,
+                maxTeamMembers: 1,
+                features: [
+                    'custom_branding', 'api_access', 'webhooks', 'slack_integration',
+                    'email_verification', 'analytics_basic', 'csv_export', 'leaderboard'
+                ],
+                sortOrder: 1
+            },
+            {
+                name: 'Advanced',
+                description: 'For growing businesses',
+                monthlyPrice: 50,
+                annualPrice: 396,
+                maxWaitlists: null,
+                maxSignupsPerMonth: null,
+                maxTeamMembers: 5,
+                features: [
+                    'custom_branding', 'api_access', 'webhooks', 'slack_integration',
+                    'email_verification', 'analytics_basic', 'csv_export', 'leaderboard',
+                    'remove_branding', 'zapier_integration', 'hide_position_count',
+                    'block_personal_emails', 'allowed_domains', 'move_user_position'
+                ],
+                sortOrder: 2
+            },
+            {
+                name: 'Pro',
+                description: 'For power users and teams',
+                monthlyPrice: 250,
+                annualPrice: 2004,
+                maxWaitlists: null,
+                maxSignupsPerMonth: null,
+                maxTeamMembers: null,
+                features: [
+                    'custom_branding', 'api_access', 'webhooks', 'slack_integration',
+                    'email_verification', 'csv_export', 'leaderboard',
+                    'remove_branding', 'zapier_integration', 'hide_position_count',
+                    'block_personal_emails', 'allowed_domains', 'move_user_position',
+                    'analytics_deep', 'custom_email_templates', 'custom_offboarding_email',
+                    'custom_domain_emails', 'email_blasts', 'multi_user_team'
+                ],
+                sortOrder: 3
+            },
+            {
+                name: 'Enterprise',
+                description: 'Custom solutions for large organizations',
+                monthlyPrice: 0,
+                annualPrice: 0,
+                maxWaitlists: null,
+                maxSignupsPerMonth: null,
+                maxTeamMembers: null,
+                features: [
+                    'custom_branding', 'api_access', 'webhooks', 'slack_integration',
+                    'email_verification', 'csv_export', 'leaderboard',
+                    'remove_branding', 'zapier_integration', 'hide_position_count',
+                    'block_personal_emails', 'allowed_domains', 'move_user_position',
+                    'analytics_deep', 'custom_email_templates', 'custom_offboarding_email',
+                    'custom_domain_emails', 'email_blasts', 'multi_user_team',
+                    'sso', 'custom_sla', 'dedicated_support', 'custom_features'
+                ],
+                sortOrder: 4,
+                isEnterprise: true
+            }
+        ];
+
+        const results = [];
+        const existingPlans = await Subscription.getAllPlans();
+
+        for (const plan of plans) {
+            const existing = existingPlans.find(p => p.name === plan.name);
+
+            if (existing) {
+                results.push({ name: plan.name, status: 'exists', id: existing.id });
+            } else {
+                const created = await Subscription.createPlan(plan);
+                results.push({ name: plan.name, status: 'created', id: created.id });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Plans seeded',
+            results
+        });
+    } catch (error) {
+        console.error('[Test] Seed plans error:', error);
+        res.status(500).json({ error: 'Failed to seed plans', details: error.message });
+    }
+});
+
 module.exports = router;
