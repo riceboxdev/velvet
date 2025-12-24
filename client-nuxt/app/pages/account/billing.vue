@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const toast = useToast()
+const authStore = useAuthStore()
 
 interface Plan {
   id: string
@@ -57,7 +58,8 @@ onMounted(async () => {
 })
 
 async function getAuthToken() {
-  return localStorage.getItem('velvet_token')
+  // Use Firebase auth store to get fresh ID token
+  return await authStore.getIdToken()
 }
 
 async function fetchSubscription() {
