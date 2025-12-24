@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
+import { useThemeStore } from '~/stores/theme'
+import { useDebounceFn } from '@vueuse/core'
 
 const authStore = useAuthStore()
-const colorMode = useColorMode()
-const appConfig = useAppConfig()
+const themeStore = useThemeStore()
+const toast = useToast()
 
 // Redirect non-admins
 if (!authStore.user?.is_admin) {
@@ -13,19 +15,45 @@ if (!authStore.user?.is_admin) {
 const colors = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose']
 const neutrals = ['slate', 'gray', 'zinc', 'neutral', 'stone']
 
-const selectedPrimary = ref(appConfig.ui.colors.primary)
-const selectedNeutral = ref(appConfig.ui.colors.neutral)
-const selectedMode = ref(colorMode.preference)
+// Local refs bound to theme store
+const selectedPrimary = ref(themeStore.primary)
+const selectedNeutral = ref(themeStore.neutral)
+const selectedMode = ref(themeStore.mode)
 
-function applyTheme() {
-  appConfig.ui.colors.primary = selectedPrimary.value
-  appConfig.ui.colors.neutral = selectedNeutral.value
-  colorMode.preference = selectedMode.value
-}
+// Debounced save to prevent API spam
+const debouncedSave = useDebounceFn(async () => {
+  try {
+    await themeStore.saveTheme()
+    toast.add({
+      title: 'Theme saved',
+      description: 'Your changes have been applied to all users.',
+      icon: 'i-lucide-check',
+      color: 'success'
+    })
+  } catch (e: any) {
+    toast.add({
+      title: 'Failed to save theme',
+      description: e.message || 'Please try again.',
+      icon: 'i-lucide-alert-circle',
+      color: 'error'
+    })
+  }
+}, 1000)
 
 // Watch and apply changes
-watch([selectedPrimary, selectedNeutral, selectedMode], () => {
-  applyTheme()
+watch(selectedPrimary, (val) => {
+  themeStore.updatePrimary(val)
+  debouncedSave()
+})
+
+watch(selectedNeutral, (val) => {
+  themeStore.updateNeutral(val)
+  debouncedSave()
+})
+
+watch(selectedMode, (val) => {
+  themeStore.updateMode(val as 'light' | 'dark' | 'system')
+  debouncedSave()
 })
 </script>
 
@@ -38,10 +66,16 @@ watch([selectedPrimary, selectedNeutral, selectedMode], () => {
       orientation="horizontal"
       class="mb-4"
     >
-      <UBadge color="warning" variant="subtle" class="lg:ms-auto">
-        <UIcon name="i-lucide-shield" class="size-3 mr-1" />
-        Admin Only
-      </UBadge>
+      <div class="flex items-center gap-2 lg:ms-auto">
+        <UBadge v-if="themeStore.saving" color="info" variant="subtle">
+          <UIcon name="i-lucide-loader-2" class="size-3 mr-1 animate-spin" />
+          Saving...
+        </UBadge>
+        <UBadge color="warning" variant="subtle">
+          <UIcon name="i-lucide-shield" class="size-3 mr-1" />
+          Admin Only
+        </UBadge>
+      </div>
     </UPageCard>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -2,21 +2,25 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { useAuthStore } from '~/stores/auth'
 import { useWaitlistStore } from '~/stores/waitlist'
+import { useThemeStore } from '~/stores/theme'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const waitlistStore = useWaitlistStore()
+const themeStore = useThemeStore()
 
 const open = ref(false)
 
 // Initialize stores on mount
 onMounted(async () => {
-  if (authStore.token && !authStore.user) {
+  if (authStore.firebaseUser && !authStore.user) {
     await authStore.fetchCurrentUser()
   }
 
   if (authStore.isAuthenticated) {
     await waitlistStore.fetchAllWaitlists()
+    // Load theme settings for all authenticated users
+    await themeStore.fetchTheme()
   }
 })
 
@@ -24,6 +28,8 @@ onMounted(async () => {
 watch(() => authStore.isAuthenticated, async (isAuth) => {
   if (isAuth) {
     await waitlistStore.fetchAllWaitlists()
+    // Load theme when user logs in
+    await themeStore.fetchTheme()
   } else {
     waitlistStore.reset()
   }
