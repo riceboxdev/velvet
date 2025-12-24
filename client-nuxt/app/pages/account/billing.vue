@@ -358,11 +358,13 @@ const testPlanOptions = computed(() => {
             <div class="flex flex-wrap items-end gap-3">
               <div class="w-48">
                 <label class="text-xs text-dimmed block mb-1">Select Plan</label>
-                <USelect 
+                <USelectMenu 
                   v-model="testPlanName" 
-                  :options="testPlanOptions"
+                  :items="testPlanOptions"
+                  value-key="value"
                   placeholder="Choose plan..."
                   size="sm"
+                  class="w-full"
                 />
               </div>
               
