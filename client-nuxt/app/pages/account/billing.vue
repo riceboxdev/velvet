@@ -42,7 +42,14 @@ const plans = ref<Plan[]>([])
 const changingPlan = ref(false)
 const selectedPlan = ref<Plan | null>(null)
 const showPlanModal = ref(false)
-const billingCycle = ref<'monthly' | 'annual'>('monthly')
+const isAnnual = ref(false)
+
+const billingCycle = computed(() => isAnnual.value ? 'annual' : 'monthly')
+
+// Test mode state
+const testMode = ref(true) // Enable test mode by default until Stripe is configured
+const testPlanName = ref('')
+const settingTestPlan = ref(false)
 
 onMounted(async () => {
   await Promise.all([fetchSubscription(), fetchPlans()])
@@ -213,6 +220,99 @@ function getPlanPrice(plan: Plan) {
 function isCurrentPlan(plan: Plan) {
   return limits.value?.planName === plan.name
 }
+
+// Test mode functions
+async function setTestPlan() {
+  if (!testPlanName.value) return
+  
+  settingTestPlan.value = true
+  try {
+    const token = await getAuthToken()
+    const response = await fetch(`${API_URL}/api/subscription/test/set-plan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        planName: testPlanName.value,
+        billingCycle: billingCycle.value
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to set plan')
+    }
+
+    toast.add({
+      title: 'Plan Updated',
+      description: data.message,
+      color: 'success'
+    })
+
+    // Refresh subscription data
+    await fetchSubscription()
+  } catch (error: any) {
+    console.error('Set test plan error:', error)
+    toast.add({
+      title: 'Error',
+      description: error.message || 'Failed to set test plan',
+      color: 'error'
+    })
+  } finally {
+    settingTestPlan.value = false
+  }
+}
+
+async function clearTestSubscription() {
+  settingTestPlan.value = true
+  try {
+    const token = await getAuthToken()
+    const response = await fetch(`${API_URL}/api/subscription/test/clear`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to clear subscription')
+    }
+
+    toast.add({
+      title: 'Subscription Cleared',
+      description: data.message,
+      color: 'success'
+    })
+
+    // Refresh subscription data
+    await fetchSubscription()
+    testPlanName.value = ''
+  } catch (error: any) {
+    console.error('Clear subscription error:', error)
+    toast.add({
+      title: 'Error',
+      description: error.message || 'Failed to clear subscription',
+      color: 'error'
+    })
+  } finally {
+    settingTestPlan.value = false
+  }
+}
+
+// Get available plans for test dropdown
+const testPlanOptions = computed(() => {
+  return plans.value
+    .filter(p => !p.isEnterprise)
+    .map(p => ({
+      label: p.name,
+      value: p.name
+    }))
+})
 </script>
 
 <template>
@@ -231,6 +331,80 @@ function isCurrentPlan(plan: Plan) {
     </div>
 
     <template v-else>
+      <!-- Test Mode Panel -->
+      <UCard v-if="testMode" class="mb-6 border-warning/50 bg-warning/5">
+        <div class="flex items-start gap-4">
+          <div class="size-10 rounded-lg bg-warning/20 flex items-center justify-center shrink-0">
+            <UIcon name="i-lucide-flask-conical" class="size-5 text-warning" />
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+              <h3 class="font-semibold">Test Mode</h3>
+              <UBadge color="warning" variant="subtle">Sandbox</UBadge>
+            </div>
+            <p class="text-sm text-dimmed mb-4">
+              Switch between plans instantly to test feature access. No payment required.
+            </p>
+            
+            <div class="flex flex-wrap items-end gap-3">
+              <div class="w-48">
+                <label class="text-xs text-dimmed block mb-1">Select Plan</label>
+                <USelect 
+                  v-model="testPlanName" 
+                  :options="testPlanOptions"
+                  placeholder="Choose plan..."
+                  size="sm"
+                />
+              </div>
+              
+              <UButton 
+                color="primary"
+                size="sm"
+                :loading="settingTestPlan"
+                :disabled="!testPlanName"
+                @click="setTestPlan"
+              >
+                Set Plan
+              </UButton>
+              
+              <UButton 
+                v-if="subscription"
+                color="error"
+                variant="outline"
+                size="sm"
+                :loading="settingTestPlan"
+                @click="clearTestSubscription"
+              >
+                Clear (Revert to Free)
+              </UButton>
+            </div>
+            
+            <div v-if="limits?.features?.length" class="mt-4 pt-4 border-t border-warning/20">
+              <p class="text-xs text-dimmed mb-2">Current Features ({{ limits.planName }}):</p>
+              <div class="flex flex-wrap gap-1">
+                <UBadge 
+                  v-for="feature in limits.features.slice(0, 8)" 
+                  :key="feature"
+                  color="neutral"
+                  variant="subtle"
+                  size="xs"
+                >
+                  {{ feature.replace(/_/g, ' ') }}
+                </UBadge>
+                <UBadge 
+                  v-if="limits.features.length > 8"
+                  color="neutral"
+                  variant="outline"
+                  size="xs"
+                >
+                  +{{ limits.features.length - 8 }} more
+                </UBadge>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
       <!-- Current Plan -->
       <UPageCard variant="subtle" class="mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -353,14 +527,14 @@ function isCurrentPlan(plan: Plan) {
 
       <!-- Billing Cycle Toggle -->
       <div class="flex items-center justify-center gap-4 mb-6">
-        <span :class="['text-sm font-medium', billingCycle === 'monthly' ? 'text-primary' : 'text-dimmed']">
+        <span :class="['text-sm font-medium', !isAnnual ? 'text-primary' : 'text-dimmed']">
           Monthly
         </span>
-        <USwitch v-model="billingCycle" on-value="annual" off-value="monthly" />
-        <span :class="['text-sm font-medium', billingCycle === 'annual' ? 'text-primary' : 'text-dimmed']">
+        <USwitch v-model="isAnnual" />
+        <span :class="['text-sm font-medium', isAnnual ? 'text-primary' : 'text-dimmed']">
           Annual
         </span>
-        <UBadge v-if="billingCycle === 'annual'" color="success" variant="subtle">Save 33%</UBadge>
+        <UBadge v-if="isAnnual" color="success" variant="subtle">Save 33%</UBadge>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

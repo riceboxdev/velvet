@@ -235,4 +235,148 @@ router.get('/features', authenticateToken, async (req, res) => {
     }
 });
 
+// ==================== TEST MODE ENDPOINTS ====================
+// These endpoints bypass Stripe for testing plan changes
+// WARNING: Only use in development/staging environments
+
+/**
+ * POST /api/subscription/test/set-plan
+ * Directly set a user's plan for testing (no payment required)
+ */
+router.post('/test/set-plan', authenticateToken, async (req, res) => {
+    try {
+        const { planName, billingCycle = 'monthly' } = req.body;
+
+        if (!planName) {
+            return res.status(400).json({ error: 'planName is required' });
+        }
+
+        // Find plan by name
+        const plans = await Subscription.getAllPlans();
+        const plan = plans.find(p => p.name.toLowerCase() === planName.toLowerCase());
+
+        if (!plan) {
+            return res.status(404).json({
+                error: 'Plan not found',
+                availablePlans: plans.map(p => p.name)
+            });
+        }
+
+        // Check for existing subscription
+        const existingSub = await Subscription.findActiveByUserId(req.user.id);
+
+        if (existingSub) {
+            // Update existing subscription
+            const updated = await Subscription.update(existingSub.id, {
+                plan_id: plan.id,
+                billing_cycle: billingCycle,
+                status: 'active'
+            });
+
+            // Get updated limits
+            const limits = await Subscription.getUserLimits(req.user.id);
+
+            return res.json({
+                success: true,
+                message: `Plan updated to ${plan.name}`,
+                mode: 'test',
+                subscription: {
+                    id: updated.id,
+                    planId: plan.id,
+                    planName: plan.name,
+                    billingCycle,
+                    status: 'active'
+                },
+                limits: {
+                    maxWaitlists: limits.max_waitlists,
+                    maxSignupsPerMonth: limits.max_signups_per_month,
+                    features: limits.features
+                }
+            });
+        } else {
+            // Create new subscription
+            const subscription = await Subscription.createSubscription({
+                userId: req.user.id,
+                planId: plan.id,
+                billingCycle
+            });
+
+            const limits = await Subscription.getUserLimits(req.user.id);
+
+            return res.status(201).json({
+                success: true,
+                message: `Subscribed to ${plan.name}`,
+                mode: 'test',
+                subscription: {
+                    id: subscription.id,
+                    planId: plan.id,
+                    planName: plan.name,
+                    billingCycle,
+                    status: 'active'
+                },
+                limits: {
+                    maxWaitlists: limits.max_waitlists,
+                    maxSignupsPerMonth: limits.max_signups_per_month,
+                    features: limits.features
+                }
+            });
+        }
+    } catch (error) {
+        console.error('[Test] Set plan error:', error);
+        res.status(500).json({ error: 'Failed to set test plan' });
+    }
+});
+
+/**
+ * POST /api/subscription/test/clear
+ * Remove user's subscription (revert to Free)
+ */
+router.post('/test/clear', authenticateToken, async (req, res) => {
+    try {
+        const existingSub = await Subscription.findActiveByUserId(req.user.id);
+
+        if (!existingSub) {
+            return res.json({
+                success: true,
+                message: 'No subscription to clear (already on Free plan)'
+            });
+        }
+
+        await Subscription.cancel(existingSub.id);
+
+        res.json({
+            success: true,
+            message: 'Subscription cleared - now on Free plan'
+        });
+    } catch (error) {
+        console.error('[Test] Clear subscription error:', error);
+        res.status(500).json({ error: 'Failed to clear subscription' });
+    }
+});
+
+/**
+ * GET /api/subscription/test/plans
+ * Get all plans for test mode dropdown
+ */
+router.get('/test/plans', async (req, res) => {
+    try {
+        const plans = await Subscription.getAllPlans();
+
+        res.json({
+            success: true,
+            plans: plans.map(p => ({
+                id: p.id,
+                name: p.name,
+                features: p.features || [],
+                maxWaitlists: p.max_waitlists,
+                maxSignupsPerMonth: p.max_signups_per_month,
+                maxTeamMembers: p.max_team_members
+            }))
+        });
+    } catch (error) {
+        console.error('[Test] Get plans error:', error);
+        res.status(500).json({ error: 'Failed to fetch plans' });
+    }
+});
+
 module.exports = router;
