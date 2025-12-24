@@ -1,10 +1,20 @@
-const Stripe = require('stripe');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { db } = require('../config/database');
 
-// Initialize Stripe with secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Lazy-initialize Stripe to prevent crash when key is not configured
+let stripe = null;
+
+function getStripeInstance() {
+    if (!stripe) {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+        }
+        const Stripe = require('stripe');
+        stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    }
+    return stripe;
+}
 
 // Map our plan names to Stripe price IDs (configured in Stripe Dashboard)
 // These should be set in environment variables for production
@@ -29,7 +39,7 @@ class StripeService {
         }
 
         // Create new customer in Stripe
-        const customer = await stripe.customers.create({
+        const customer = await getStripeInstance().customers.create({
             email: user.email,
             name: user.name || user.email,
             metadata: {
@@ -58,7 +68,7 @@ class StripeService {
             throw new Error(`No Stripe price configured for ${priceKey}`);
         }
 
-        const session = await stripe.checkout.sessions.create({
+        const session = await getStripeInstance().checkout.sessions.create({
             customer: customerId,
             mode: 'subscription',
             payment_method_types: ['card'],
@@ -90,7 +100,7 @@ class StripeService {
     static async createPortalSession({ userId, returnUrl }) {
         const customerId = await this.getOrCreateCustomer(userId);
 
-        const session = await stripe.billingPortal.sessions.create({
+        const session = await getStripeInstance().billingPortal.sessions.create({
             customer: customerId,
             return_url: returnUrl || `${process.env.CLIENT_URL}/account/billing`
         });
@@ -293,7 +303,7 @@ class StripeService {
      * Get Stripe instance for direct API calls
      */
     static getStripe() {
-        return stripe;
+        return getStripeInstance();
     }
 }
 
