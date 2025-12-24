@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken: verifyToken } = require('../middleware/auth');
 const Waitlist = require('../models/Waitlist');
+const emailService = require('../services/email');
+const { getAuth } = require('firebase-admin/auth');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -249,6 +251,58 @@ router.post('/:id/regenerate-key', async (req, res) => {
         });
     } catch (error) {
         console.error('[Waitlists] Regenerate key error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * POST /api/waitlists/:id/test-email
+ * Send a test welcome email to the current user
+ */
+router.post('/:id/test-email', async (req, res) => {
+    try {
+        const waitlist = await Waitlist.findById(req.params.id);
+
+        if (!waitlist) {
+            return res.status(404).json({ error: 'Waitlist not found' });
+        }
+
+        if (waitlist.user_id !== req.auth.uid) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Get user's email from Firebase Auth
+        const userRecord = await getAuth().getUser(req.auth.uid);
+        const email = userRecord.email;
+
+        if (!email) {
+            return res.status(400).json({ error: 'User has no email address' });
+        }
+
+        const mockSignup = {
+            email: email,
+            position: 1,
+            referral_code: 'TEST-CODE',
+            id: 'test-signup-id'
+        };
+
+        // Attempt to send email
+        // We catch errors inside to return them as JSON
+        try {
+            await emailService.sendWelcomeEmail(mockSignup, waitlist);
+            res.json({ success: true, message: `Test email sent to ${email}` });
+        } catch (emailError) {
+            console.error('[Waitlists] Test email failed:', emailError);
+            res.status(500).json({
+                error: 'Failed to send email',
+                details: emailError.message,
+                // SendGrid specific error details if available
+                providerError: emailError.response?.body
+            });
+        }
+
+    } catch (error) {
+        console.error('[Waitlists] Test email error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

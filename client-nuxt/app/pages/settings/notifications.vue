@@ -67,6 +67,29 @@ async function saveSettings() {
     saving.value = false
   }
 }
+
+const sendingTest = ref(false)
+
+async function sendTestEmail() {
+  if (sendingTest.value) return
+  sendingTest.value = true
+  try {
+    const result = await store.sendTestEmail()
+    toast.add({ 
+        title: 'Email Sent', 
+        description: result?.message || 'Test email successfully sent.',
+        icon: 'i-lucide-check'
+    })
+  } catch (e: any) {
+    toast.add({ 
+        title: 'Failed to send', 
+        description: e.message, 
+        color: 'error' 
+    })
+  } finally {
+    sendingTest.value = false
+  }
+}
 </script>
 
 <template>
@@ -109,6 +132,18 @@ async function saveSettings() {
           :disabled="!authStore.subscription?.features.includes('custom_offboarding_email')"
         />
         <p v-if="!authStore.subscription?.features.includes('custom_offboarding_email')" class="text-xs text-primary mt-1 pl-7">Upgrade to Pro to send offboarding emails</p>
+      
+        <div class="pt-4 border-t border-gray-100 dark:border-gray-800 mt-4">
+            <UButton
+                label="Send Test Email"
+                size="xs"
+                variant="soft"
+                icon="i-lucide-send"
+                :loading="sendingTest"
+                @click="sendTestEmail"
+            />
+            <p class="text-xs text-dimmed mt-2">Sends a test welcome email to your account email address ({{ authStore.user?.email }}) to verify configuration.</p>
+        </div>
       </div>
     </UPageCard>
 

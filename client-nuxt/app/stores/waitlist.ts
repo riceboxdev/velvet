@@ -431,6 +431,19 @@ export const useWaitlistStore = defineStore('waitlist', () => {
         hasApiKey,
 
         // Actions
+        sendTestEmail: async () => {
+            if (!currentWaitlist.value?.id) return null
+            const headers = await getAuthHeaders()
+            const res = await fetch(`${getApiBase()}/waitlists/${currentWaitlist.value.id}/test-email`, {
+                method: 'POST',
+                headers
+            })
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || 'Failed to send test email')
+            }
+            return await res.json()
+        },
         fetchAllWaitlists,
         fetchWaitlist,
         switchWaitlist,
