@@ -33,7 +33,7 @@ interface Limits {
   features: string[]
 }
 
-const API_URL = config.public.apiUrl || 'http://localhost:3001'
+const API_URL = config.public.apiBase || 'http://localhost:3001'
 
 const loading = ref(true)
 const subscription = ref<Subscription | null>(null)
@@ -63,7 +63,7 @@ async function getAuthToken() {
 async function fetchSubscription() {
   try {
     const token = await getAuthToken()
-    const response = await fetch(`${API_URL}/api/subscription/current`, {
+    const response = await fetch(`${API_URL}/subscription/current`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     if (response.ok) {
@@ -78,7 +78,7 @@ async function fetchSubscription() {
 
 async function fetchPlans() {
   try {
-    const response = await fetch(`${API_URL}/api/subscription/plans`)
+    const response = await fetch(`${API_URL}/subscription/plans`)
     if (response.ok) {
       plans.value = await response.json()
     }
@@ -125,7 +125,7 @@ async function handleSelectPlan() {
     const token = await getAuthToken()
     
     // Create Stripe Checkout session
-    const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
+    const response = await fetch(`${API_URL}/stripe/create-checkout-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ async function handleManageBilling() {
   try {
     const token = await getAuthToken()
     
-    const response = await fetch(`${API_URL}/api/stripe/create-portal-session`, {
+    const response = await fetch(`${API_URL}/stripe/create-portal-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -228,7 +228,7 @@ async function setTestPlan() {
   settingTestPlan.value = true
   try {
     const token = await getAuthToken()
-    const response = await fetch(`${API_URL}/api/subscription/test/set-plan`, {
+    const response = await fetch(`${API_URL}/subscription/test/set-plan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -270,7 +270,7 @@ async function clearTestSubscription() {
   settingTestPlan.value = true
   try {
     const token = await getAuthToken()
-    const response = await fetch(`${API_URL}/api/subscription/test/clear`, {
+    const response = await fetch(`${API_URL}/subscription/test/clear`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`

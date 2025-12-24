@@ -26,11 +26,11 @@ const plans = ref<Plan[]>([])
 const loading = ref(true)
 const isAnnual = ref(false)
 
-const API_URL = config.public.apiUrl || 'http://localhost:3001'
+const API_URL = config.public.apiBase || 'http://localhost:3001'
 
 onMounted(async () => {
   try {
-    const response = await fetch(`${API_URL}/api/subscription/plans`)
+    const response = await fetch(`${API_URL}/subscription/plans`)
     if (response.ok) {
       plans.value = await response.json()
     }
