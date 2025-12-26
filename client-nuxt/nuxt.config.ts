@@ -30,20 +30,19 @@ export default defineNuxtConfig({
       firebaseMessagingSenderId: '',
       firebaseAppId: ''
     }
-  }
-},
+  },
 
   devtools: {
-  enabled: true
-},
+    enabled: true
+  },
 
   css: ['~/assets/css/main.css'],
 
   routeRules: {
-  '/api/**': {
-    cors: true
-  }
-},
+    '/api/**': {
+      cors: true
+    }
+  },
 
   compatibilityDate: '2024-07-11',
 
