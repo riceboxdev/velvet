@@ -10,14 +10,16 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 
-# Allow native module build scripts and install
-RUN echo "enable-scripts=true" > .npmrc && \
-    pnpm install --frozen-lockfile
+# Install with explicit script enabling and cache bust comment
+# Cache bust: v2
+RUN pnpm install --frozen-lockfile --config.enable-scripts=true
 
 # ---- Build ----
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Rebuild better-sqlite3 to ensure bindings are present in the builder stage
+RUN pnpm rebuild better-sqlite3
 RUN pnpm run build
 
 # ---- Production ----
