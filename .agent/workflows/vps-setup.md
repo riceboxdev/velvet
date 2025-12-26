@@ -5,96 +5,109 @@ description: Deploy Velvet to VPS using Dokploy
 # Dokploy Deployment Workflow
 
 ## Prerequisites
-- Dokploy installed on your VPS (already done ✅)
-- GitHub repo with Velvet code
-- Domain DNS pointing to VPS IP
+- Dokploy installed on VPS
+- GitHub repo: `riceboxdev/Velvet`
+- DNS configured:
+  - `api.velvetapi.com` → VPS IP
+  - `app.velvetapi.com` → VPS IP
 
 ---
 
-## Initial Setup in Dokploy UI
+## Step 1: Create Project
 
-### 1. Access Dokploy
-Open `https://YOUR_VPS_IP:3000` in browser and login.
+1. Open Dokploy dashboard
+2. Click **Create Project** → Name: `Velvet`
 
-### 2. Create a Project
-1. Click **Create Project**
-2. Name it `Velvet`
+---
 
-### 3. Add Docker Compose Service
-1. Inside the Velvet project, click **Add Service** → **Docker Compose**
-2. Choose **GitHub** as source
-3. Connect your GitHub account and select the `VELVET` repository
-4. Set branch to `main`
-5. Compose Path: `docker-compose.yml` (root of repo)
+## Step 2: Deploy API Service
 
-### 4. Configure Environment Variables
-Go to **Environment** tab and add:
+1. In project → **Create Service** → **Application**
+2. Name: `api`
+3. **General Tab**:
+   - Provider: **GitHub**
+   - Repository: `riceboxdev/Velvet`
+   - Branch: `main`
+   - Build Path: `./server`
+   - Dockerfile: `./server/Dockerfile`
 
-#### API Service Variables:
+4. **Environment Tab** - Add these variables:
 ```env
-FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
-CORS_ORIGIN=https://velvetapi.com,https://www.velvetapi.com
+NODE_ENV=production
+PORT=3002
+CORS_ORIGIN=https://app.velvetapi.com
+FIREBASE_SERVICE_ACCOUNT="<minified-json-here>"
 STRIPE_SECRET_KEY=sk_live_...
 SENDGRID_API_KEY=SG....
+EMAIL_FROM=noreply@velvetapi.com
+BASE_URL=https://app.velvetapi.com
 ```
 
-#### Web Service Variables:
+> **FIREBASE_SERVICE_ACCOUNT**: Wrap the JSON in double quotes. Get minified JSON:
+> ```bash
+> cat velvet-fc372-firebase-adminsdk-*.json | jq -c . | pbcopy
+> ```
+
+5. **Domains Tab**:
+   - Add domain: `api.velvetapi.com`
+   - Container Port: `3002`
+   - HTTPS: ✓ (Let's Encrypt)
+
+6. Click **Deploy**
+
+7. **Verify**: `curl https://api.velvetapi.com/health` should return `{"status":"ok"}`
+
+---
+
+## Step 3: Deploy Web Service
+
+1. In project → **Create Service** → **Application**
+2. Name: `web`
+3. **General Tab**:
+   - Provider: **GitHub**
+   - Repository: `riceboxdev/Velvet`
+   - Branch: `main`
+   - Build Path: `./client-nuxt`
+   - Dockerfile: `./client-nuxt/Dockerfile`
+
+4. **Environment Tab**:
 ```env
-NUXT_PUBLIC_API_HOST=https://api.velvetapi.com
-NUXT_PUBLIC_FIREBASE_API_KEY=your-key
-NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NUXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-NUXT_PUBLIC_FIREBASE_APP_ID=1:123:web:abc
+NODE_ENV=production
+NITRO_PORT=3000
+NUXT_PUBLIC_API_BASE=https://api.velvetapi.com/api
+NUXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCPlVZFdx2Shelx9oP1MlrKCiRro9x99bk
+NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN=velvet-fc372.firebaseapp.com
+NUXT_PUBLIC_FIREBASE_PROJECT_ID=velvet-fc372
+NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET=velvet-fc372.firebasestorage.app
+NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=836952323560
+NUXT_PUBLIC_FIREBASE_APP_ID=1:836952323560:web:62eb6cb4c1a11a2911a05d
 ```
 
-### 5. Configure Domain
-1. Go to **Domains** tab in Dokploy
-2. Add domains for each service:
-   - `api.velvetapi.com` → api service
-   - `velvetapi.com` → web service
-   - `www.velvetapi.com` → web service
+5. **Domains Tab**:
+   - Add domain: `app.velvetapi.com`
+   - Container Port: `3000`
+   - HTTPS: ✓
 
-Dokploy uses Traefik and automatically provisions SSL certificates via Let's Encrypt.
-
-### 6. Deploy
-Click **Deploy** button. Dokploy will:
-1. Pull code from GitHub
-2. Build Docker images
-3. Start containers
-4. Configure Traefik routing
+6. Click **Deploy**
 
 ---
 
-## Auto-Deploy on Push
+## Step 4: Create Test User
 
-Dokploy provides a webhook URL for each service:
-
-1. Go to **Deployments** tab in your Docker Compose service
-2. Copy the **Webhook URL**
-3. In GitHub repo → Settings → Webhooks → Add webhook
-4. Paste the URL, set content type to `application/json`
-5. Select "Just the push event"
-
-Now every push to `main` triggers automatic deployment!
+1. Go to [Firebase Console → Authentication](https://console.firebase.google.com/project/velvet-fc372/authentication/users)
+2. Click **Add user**
+3. Email: `demo@example.com`, Password: `password`
 
 ---
 
-## Useful Commands
+## Step 5: Verify
 
-### View Logs
-In Dokploy UI → **Logs** tab, select the service (api or web)
-
-### Manual Deploy
-Click **Deploy** in the Dokploy UI, or push to `main` branch
-
-### Restart Services
-In Dokploy UI → **General** tab → **Restart**
+- [ ] `https://api.velvetapi.com/health` returns OK
+- [ ] `https://app.velvetapi.com` loads
+- [ ] Login with `demo@example.com` / `password` works
 
 ---
 
-## Monitoring
-Dokploy provides built-in monitoring:
-- Go to **Monitoring** tab
-- View CPU, Memory, Disk, and Network usage per service
+## Auto-Deploy (Optional)
+
+Each service has a webhook URL in **Deployments Tab**. Add it to GitHub → Settings → Webhooks to auto-deploy on push.
