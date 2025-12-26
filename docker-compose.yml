@@ -54,7 +54,7 @@ services:
       - "3000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.velvet-web.rule=Host(`velvetapi.com`) || Host(`www.velvetapi.com`)"
+      - "traefik.http.routers.velvet-web.rule=Host(`app.velvetapi.com`)"
       - "traefik.http.routers.velvet-web.entrypoints=websecure"
       - "traefik.http.routers.velvet-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.velvet-web.loadbalancer.server.port=3000"
