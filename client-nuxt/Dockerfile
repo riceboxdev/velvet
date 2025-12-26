@@ -1,13 +1,16 @@
 FROM node:20-alpine AS base
 
-# Install pnpm
+# Install pnpm and build dependencies for native modules
 RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
 # ---- Dependencies ----
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
+
+# Install with native builds allowed
 RUN pnpm install --frozen-lockfile
 
 # ---- Build ----
@@ -17,7 +20,7 @@ COPY . .
 RUN pnpm run build
 
 # ---- Production ----
-FROM base AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
