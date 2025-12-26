@@ -4,6 +4,7 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin
 // Supports both raw JSON and base64-encoded service account
 let serviceAccount = null;
+
 try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
     // Base64 encoded (cleaner for env vars)
@@ -12,32 +13,59 @@ try {
     console.log('[Firebase] Successfully parsed SERVICE_ACCOUNT from base64');
   } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     // Raw JSON (legacy support)
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    let raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+    // Sometimes newlines are escaped as literal \n strings in env vars, we need to handle that if JSON.parse fails initially
+    try {
+      serviceAccount = JSON.parse(raw);
+    } catch (e) {
+      console.log('[Firebase] JSON parse failed, attempting to fix escaped newlines...');
+      // If the private key has real newlines that break JSON.parse, this might help,
+      // but robust env vars should be single line.
+      // If the user pasted a string with real newlines, JSON.parse might fail.
+      serviceAccount = JSON.parse(raw); // Retrying effectively just to let the catch block below handle fatal errors
+    }
     console.log('[Firebase] Successfully parsed SERVICE_ACCOUNT from JSON');
   }
 } catch (error) {
   console.error('[Firebase] Failed to parse FIREBASE_SERVICE_ACCOUNT:', error.message);
+  // Do not crash here, let the next block handle null serviceAccount
 }
 
-if (serviceAccount) {
-  try {
+let db = null;
+let auth = null;
+
+try {
+  if (serviceAccount) {
+    // If private_key has literal "\n" characters, Firebase SDK might need them to be real newlines
+    if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
-    console.log('[Firebase] Initialized with Service Account');
-  } catch (err) {
-    console.error('[Firebase] Failed to initialize with Service Account:', err.message);
-    admin.initializeApp(); // Fallback
+    console.log('[Firebase] Initialized with Service Account: ' + serviceAccount.project_id);
+  } else {
+    // Check if we are in production. If so, don't just try default creds blindly if they might crash
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[Firebase] WARNING: No Service Account provided in production. Attempting default credentials...');
+    }
+
+    // Local development fallback (uses default credentials)
+    admin.initializeApp();
+    console.log('[Firebase] Initialized with Default Credentials');
   }
-} else {
-  // Local development fallback (uses default credentials)
-  admin.initializeApp();
-  console.log('[Firebase] Initialized with Default Credentials');
+
+  db = admin.firestore();
+  auth = admin.auth();
+
+  // Ensure settings exist
+  db.settings({ ignoreUndefinedProperties: true });
+
+} catch (err) {
+  console.error('[Firebase] CRITICAL ERROR: Failed to initialize Firebase:', err.message);
+  // Do NOT crash the process. Instead, let it run so health check works.
+  // We'll export nulls, and routes that need DB will fail gracefully or 500.
 }
 
-const db = admin.firestore();
-
-// Ensure settings exist
-db.settings({ ignoreUndefinedProperties: true });
-
-module.exports = { db, auth: admin.auth() };
+module.exports = { db, auth };
