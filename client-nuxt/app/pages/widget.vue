@@ -132,8 +132,7 @@ function markChanged() {
 }
 
 // ============ IMAGE UPLOAD ============
-import { useFirebaseStorage } from '~/plugins/firebase.client'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { createClient } from '@supabase/supabase-js'
 
 const uploadingLogo = ref(false)
 const uploadingBanner = ref(false)
@@ -148,6 +147,27 @@ function triggerBannerUpload() {
   bannerInputRef.value?.click()
 }
 
+// Function to upload file to Supabase Storage
+async function uploadToSupabase(file: File, path: string): Promise<string> {
+  const config = useRuntimeConfig()
+  const supabase = createClient(config.public.supabaseUrl, config.public.supabaseAnonKey)
+  
+  const { data, error } = await supabase.storage
+    .from('avatars') // Using avatars bucket for all uploads for now
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: true
+    })
+
+  if (error) throw error
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(data.path)
+    
+  return publicUrl
+}
+
 async function handleLogoUpload(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -155,15 +175,13 @@ async function handleLogoUpload(event: Event) {
 
   uploadingLogo.value = true
   try {
-    const storage = useFirebaseStorage()
-    if (!storage) throw new Error('Storage not initialized')
-
     const waitlistId = store.currentWaitlist?.id
     if (!waitlistId) throw new Error('No waitlist selected')
 
-    const fileRef = storageRef(storage, `waitlists/${waitlistId}/logo`)
-    await uploadBytes(fileRef, file)
-    const url = await getDownloadURL(fileRef)
+    const fileExt = file.name.split('.').pop()
+    const path = `waitlists/${waitlistId}/logo.${fileExt}`
+    
+    const url = await uploadToSupabase(file, path)
     
     design.value.logoUrl = url
     markChanged()
@@ -184,15 +202,13 @@ async function handleBannerUpload(event: Event) {
 
   uploadingBanner.value = true
   try {
-    const storage = useFirebaseStorage()
-    if (!storage) throw new Error('Storage not initialized')
-
     const waitlistId = store.currentWaitlist?.id
     if (!waitlistId) throw new Error('No waitlist selected')
 
-    const fileRef = storageRef(storage, `waitlists/${waitlistId}/banner`)
-    await uploadBytes(fileRef, file)
-    const url = await getDownloadURL(fileRef)
+    const fileExt = file.name.split('.').pop()
+    const path = `waitlists/${waitlistId}/banner.${fileExt}`
+    
+    const url = await uploadToSupabase(file, path)
     
     design.value.bannerImageUrl = url
     markChanged()
